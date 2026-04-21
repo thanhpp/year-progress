@@ -8,11 +8,11 @@ from datetime import date, timedelta
 from PIL import Image, ImageDraw, ImageFont
 
 # ── Video constants ────────────────────────────────────────────────────────────
-WIDTH        = 1080
-HEIGHT       = 1920
-FPS          = 30
-DURATION     = 5
-TOTAL_FRAMES = FPS * DURATION   # 150
+WIDTH       = 1080
+HEIGHT      = 1920
+FPS         = 30
+MIN_SECONDS = 3.0   # floor → 90 frames
+MAX_SECONDS = 9.6   # floor → 288 frames
 
 # ── Colours (GitHub dark theme) ────────────────────────────────────────────────
 BG_COLOR    = (13,  17,  23)
@@ -94,6 +94,7 @@ def draw_centered_text(draw, text, font, y, color, x_center=WIDTH // 2):
 
 def draw_frame(
     frame_num: int,
+    total_frames: int,
     today: date,
     year: int,
     days_in_year: int,
@@ -105,8 +106,8 @@ def draw_frame(
     grid_y: int,
     month_xs: dict,
 ) -> Image.Image:
-    days_to_show = round(days_passed * frame_num / (TOTAL_FRAMES - 1))
-    current_pct  = days_to_show / days_in_year * 100
+    days_to_show = round(days_passed * frame_num / (total_frames - 1))
+    current_pct  = round(days_to_show / days_in_year * 100, 1)
 
     img  = Image.new("RGB", (WIDTH, HEIGHT), BG_COLOR)
     draw = ImageDraw.Draw(img)
@@ -207,6 +208,14 @@ def main():
 
     month_xs = get_month_label_x(year, grid, cell_size, grid_x)
 
+    min_frames   = math.floor(MIN_SECONDS * FPS)
+    max_frames   = math.floor(MAX_SECONDS * FPS)
+    total_frames = max(min_frames, min(max_frames, days_passed))
+    duration_s   = total_frames / FPS
+
+    print(f"  {total_frames} frames → {duration_s:.2f}s  "
+          f"(fill rate: {days_passed / total_frames:.2f} boxes/frame)")
+
     output = f"year_progress_{year}.mp4"
     cmd = [
         "ffmpeg", "-y",
@@ -223,11 +232,11 @@ def main():
 
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     try:
-        for f in range(TOTAL_FRAMES):
+        for f in range(total_frames):
             if f % 30 == 0:
-                print(f"  frame {f}/{TOTAL_FRAMES} …")
+                print(f"  frame {f}/{total_frames} …")
             frame_img = draw_frame(
-                f, today, year, days_in_year, days_passed,
+                f, total_frames, today, year, days_in_year, days_passed,
                 grid, num_cols, cell_size, grid_x, grid_y, month_xs,
             )
             proc.stdin.write(frame_img.tobytes())
@@ -239,7 +248,7 @@ def main():
         print(f"ffmpeg exited with code {ret}", file=sys.stderr)
         sys.exit(ret)
 
-    print(f"Done → {output}  ({WIDTH}×{HEIGHT}, {FPS}fps, {DURATION}s)")
+    print(f"Done → {output}  ({WIDTH}×{HEIGHT}, {FPS}fps, {duration_s:.2f}s)")
 
 
 if __name__ == "__main__":
