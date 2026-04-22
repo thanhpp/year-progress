@@ -5,6 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Running the generator
 
 ```bash
+python3 -m venv .venv             # one-time: create venv in project folder
+source .venv/bin/activate         # activate venv
 pip install -r requirements.txt   # one-time: installs Pillow
 python generate.py                 # produces year_progress_<year>.mp4
 ```
@@ -30,10 +32,10 @@ The entire implementation lives in `generate.py` as a single script with no CLI 
 
 ## Key constants to adjust
 
-| Constant | Location | Effect |
-|---|---|---|
-| `MIN_SECONDS` / `MAX_SECONDS` | top of `generate.py` | Video duration range |
-| `CELL_FILLED` | top of `generate.py` | Box colour (GitHub green by default) |
-| `PADDING_H` / `CELL_GAP` | top of `generate.py` | Grid geometry |
-| `grid_y = 650` | `main()` | Vertical position of the commit grid |
-| Font sizes passed to `load_font()` | `draw_frame()` | Text sizes for each element |
+| Constant                           | Location             | Effect                               |
+| ---------------------------------- | -------------------- | ------------------------------------ |
+| `MIN_SECONDS` / `MAX_SECONDS`      | top of `generate.py` | Video duration range                 |
+| `CELL_FILLED`                      | top of `generate.py` | Box colour (GitHub green by default) |
+| `PADDING_H` / `CELL_GAP`           | top of `generate.py` | Grid geometry                        |
+| `grid_y = 650`                     | `main()`             | Vertical position of the commit grid |
+| Font sizes passed to `load_font()` | `draw_frame()`       | Text sizes for each element          |

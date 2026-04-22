@@ -1,3 +1,11 @@
+# Python venv
+.venv/
+
+# Generated output
 *.mp4
+
+# Python cache
 __pycache__/
 *.pyc
+bin/*
+pyvenv.cfg
