@@ -1,5 +1,9 @@
 # Python venv
 .venv/
+bin/*
+pyvenv.cfg
+lib64/*
+lib64
 
 # Generated output
 *.mp4
@@ -7,5 +11,3 @@
 # Python cache
 __pycache__/
 *.pyc
-bin/*
-pyvenv.cfg
