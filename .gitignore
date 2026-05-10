@@ -7,6 +7,7 @@ lib64
 
 # Generated output
 *.mp4
+year_progress_2026.mp4
 
 # Python cache
 __pycache__/

@@ -77,14 +77,6 @@ def build_day_grid(year: int):
     return grid, num_cols
 
 
-def get_month_label_x(year: int, grid, cell_size: int, grid_x: int) -> dict:
-    """Return {month_number: x_pixel} for the first column each month starts."""
-    first_col: dict[int, int] = {}
-    for col, _row, _day_num, d in grid:
-        if d.month not in first_col:
-            first_col[d.month] = col
-    return {m: grid_x + c * (cell_size + CELL_GAP) for m, c in first_col.items()}
-
 
 def draw_centered_text(draw, text, font, y, color, x_center=WIDTH // 2):
     bbox = draw.textbbox((0, 0), text, font=font)
@@ -104,7 +96,6 @@ def draw_frame(
     cell_size: int,
     grid_x: int,
     grid_y: int,
-    month_xs: dict,
 ) -> Image.Image:
     days_to_show = round(days_passed * frame_num / (total_frames - 1))
     current_pct  = round(days_to_show / days_in_year * 100, 1)
@@ -124,13 +115,6 @@ def draw_frame(
     date_font = load_font(60)
     date_str  = today.strftime("%B %-d")
     draw_centered_text(draw, date_str, date_font, 480, MUTED_COLOR)
-
-    # ── Month labels ───────────────────────────────────────────────────────────
-    month_abbr = ["Jan","Feb","Mar","Apr","May","Jun",
-                  "Jul","Aug","Sep","Oct","Nov","Dec"]
-    mlbl_font  = load_font(22)
-    for m, x in month_xs.items():
-        draw.text((x, 618), month_abbr[m - 1], font=mlbl_font, fill=MUTED_COLOR)
 
     # ── Commit graph grid ──────────────────────────────────────────────────────
     corner_r = max(2, cell_size // 5)
@@ -206,8 +190,6 @@ def main():
     grid_x = PADDING_H + (available_w - grid_w) // 2
     grid_y = 650   # top of the 7-row grid
 
-    month_xs = get_month_label_x(year, grid, cell_size, grid_x)
-
     min_frames   = math.floor(MIN_SECONDS * FPS)
     max_frames   = math.floor(MAX_SECONDS * FPS)
     total_frames = max(min_frames, min(max_frames, days_passed))
@@ -230,6 +212,8 @@ def main():
         output,
     ]
 
+    pause_frames = round(0.8 * FPS)
+
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     try:
         for f in range(total_frames):
@@ -237,9 +221,16 @@ def main():
                 print(f"  frame {f}/{total_frames} …")
             frame_img = draw_frame(
                 f, total_frames, today, year, days_in_year, days_passed,
-                grid, num_cols, cell_size, grid_x, grid_y, month_xs,
+                grid, num_cols, cell_size, grid_x, grid_y,
             )
             proc.stdin.write(frame_img.tobytes())
+        last_frame = draw_frame(
+            total_frames - 1, total_frames, today, year, days_in_year, days_passed,
+            grid, num_cols, cell_size, grid_x, grid_y,
+        )
+        last_bytes = last_frame.tobytes()
+        for _ in range(pause_frames):
+            proc.stdin.write(last_bytes)
     finally:
         proc.stdin.close()
 
@@ -248,7 +239,8 @@ def main():
         print(f"ffmpeg exited with code {ret}", file=sys.stderr)
         sys.exit(ret)
 
-    print(f"Done → {output}  ({WIDTH}×{HEIGHT}, {FPS}fps, {duration_s:.2f}s)")
+    total_duration_s = duration_s + pause_frames / FPS
+    print(f"Done → {output}  ({WIDTH}×{HEIGHT}, {FPS}fps, {total_duration_s:.2f}s)")
 
 
 if __name__ == "__main__":
